@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: spring-home-cloud
+  
+  datasource:
+    url: jdbc:postgresql://db_host:5432/home-cloud?currentSchema=dev
+    username: username
+    password: password
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: dev
+  
+  h2:
+    console:
+      enabled: false
+  
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+    session:
+      timeout: 
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+    servlet:
+      content-type: text/html
+
+app:
+  jwt:
+    secret: jwt_secret_key
+    expiration: 900000 
+
+  pagination:
+    page-size: 100  # Default page size
+
+server:
+  port: 7777
+  servlet:
+    session:
+      timeout: 900s  

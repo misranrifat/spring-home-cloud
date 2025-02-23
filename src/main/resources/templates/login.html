@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Sign In - Cloud Drive</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="auth-container">
+      <div class="auth-form">
+        <h2><i class="fas fa-cloud"></i> Cloud Drive</h2>
+        <div th:if="${param.error}" class="alert alert-error">
+          Invalid email or password
+        </div>
+        <div th:if="${param.logout}" class="alert alert-success">
+          You have been logged out
+        </div>
+        <div th:if="${param.registered}" class="alert alert-success">
+          Registration successful! Please sign in
+        </div>
+        <div th:if="${param.deleted}" class="alert alert-success">
+          Your account has been successfully deleted.
+        </div>
+        <div th:if="${param.expired}" class="alert alert-error">
+          Your session has expired. Please sign in again.
+        </div>
+        <form th:action="@{/login}" method="post">
+          <div class="form-group">
+            <label class="form-label" for="username">Email</label>
+            <input
+              type="email"
+              id="username"
+              name="username"
+              class="form-input"
+              required
+              autofocus
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-input"
+              required
+            />
+          </div>
+          <button type="submit" class="auth-btn">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+          </button>
+        </form>
+        <div class="auth-footer">
+          Don't have an account?
+          <a href="/register" class="auth-link">Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

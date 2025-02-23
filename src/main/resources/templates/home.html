@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Drive - Spring Cloud</title>
+    <link
+      rel="stylesheet"
+      th:href="@{/css/style.css(v=${#dates.createNow().getTime()})}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="drive-layout">
+    <!-- Header -->
+    <header class="drive-header">
+      <div class="header-left">
+        <div class="brand">
+          <i class="fas fa-cloud brand-icon"></i>
+          <span class="brand-name"
+            >Hi, <span th:text="${userFullName}">User</span></span
+          >
+        </div>
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" placeholder="Search in Drive" />
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" title="Settings">
+          <i class="fas fa-cog"></i>
+        </button>
+        <button id="deleteAccountBtn" class="icon-btn" title="Delete Account">
+          <i class="fas fa-user-times"></i>
+        </button>
+        <form th:action="@{/logout}" method="post" style="display: inline">
+          <button type="submit" class="icon-btn" title="Sign out">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="drive-container">
+      <!-- Sidebar -->
+      <aside class="drive-sidebar">
+        <div class="upload-btn-container">
+          <button
+            class="new-btn"
+            onclick="document.getElementById('file').click()"
+          >
+            <i class="fas fa-plus"></i>
+            <span>New</span>
+          </button>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active">
+            <i class="fas fa-hdd"></i>
+            <span>My Drive</span>
+          </a>
+          <a href="#" class="nav-item">
+            <i class="fas fa-clock"></i>
+            <span>Recent</span>
+          </a>
+          <a href="#" class="nav-item">
+            <i class="fas fa-star"></i>
+            <span>Starred</span>
+          </a>
+          <a href="#" class="nav-item">
+            <i class="fas fa-trash"></i>
+            <span>Trash</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="drive-main">
+        <div class="upload-section">
+          <h2>Upload Files</h2>
+          <div class="upload-card">
+            <form
+              th:action="@{/files/upload}"
+              method="post"
+              enctype="multipart/form-data"
+              class="upload-form"
+            >
+              <div class="file-input-container">
+                <input
+                  type="file"
+                  name="files"
+                  id="file"
+                  class="file-input"
+                  required
+                  multiple
+                  accept="*/*"
+                />
+                <label for="file" class="file-label">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <span>Choose files or drag them here</span>
+                </label>
+              </div>
+              <div
+                id="uploadProgress"
+                class="upload-progress"
+                style="display: none"
+              >
+                <div class="progress-bar">
+                  <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">
+                  Uploading... <span class="progress-percent">0%</span>
+                </div>
+              </div>
+              <div id="previewContainer" class="preview-container"></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="files-section">
+          <h2>Your Files</h2>
+          <div
+            th:if="${message}"
+            class="alert alert-success"
+            th:text="${message}"
+          ></div>
+          <div
+            th:if="${error}"
+            class="alert alert-error"
+            th:text="${error}"
+          ></div>
+
+          <div class="bulk-actions" th:if="${files != null and !files.empty}">
+            <div class="selection-info">
+              <span id="selectedCount">0 files selected</span>
+            </div>
+            <div class="bulk-buttons">
+              <button id="selectAll" class="action-btn">
+                <i class="fas fa-check-square"></i> Select All
+              </button>
+              <button
+                id="deleteSelected"
+                class="action-btn delete-btn"
+                disabled
+              >
+                <i class="fas fa-trash-alt"></i> Delete Selected
+              </button>
+              <button
+                onclick="showDeleteAllFilesModal()"
+                class="action-btn delete-btn"
+              >
+                <i class="fas fa-trash-alt"></i> Delete All
+              </button>
+            </div>
+          </div>
+
+          <div class="view-controls">
+            <div class="view-toggle">
+              <button
+                class="view-btn active"
+                data-view="grid"
+                title="Grid view"
+              >
+                <i class="fas fa-th-large"></i>
+              </button>
+              <button class="view-btn" data-view="list" title="List view">
+                <i class="fas fa-list"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="files-container">
+            <div
+              th:if="${files != null and !files.empty}"
+              class="file-grid"
+              id="filesView"
+            >
+              <div th:each="file : ${files}" class="file-card">
+                <div class="file-select">
+                  <input
+                    type="checkbox"
+                    th:value="${file.id}"
+                    class="file-checkbox"
+                    title="Select file"
+                  />
+                </div>
+                <div
+                  th:if="${file.contentType != null and file.contentType.startsWith('image/')}"
+                  class="file-thumbnail"
+                >
+                  <img
+                    th:src="@{/files/thumbnail/{id}(id=${file.id})}"
+                    th:alt="${file.fileName}"
+                    class="thumbnail-image"
+                  />
+                </div>
+                <div
+                  th:unless="${file.contentType != null and file.contentType.startsWith('image/')}"
+                  class="file-icon"
+                >
+                  <i
+                    th:class="${'fas ' + 
+                        (file.contentType != null ? 
+                            (file.contentType.startsWith('image/') ? 'fa-image' :
+                             file.contentType.startsWith('video/') ? 'fa-file-video' :
+                             file.contentType.startsWith('audio/') ? 'fa-file-audio' :
+                             file.contentType == 'application/pdf' ? 'fa-file-pdf' :
+                             file.contentType.contains('word') ? 'fa-file-word' :
+                             file.contentType.contains('spreadsheet') ? 'fa-file-excel' :
+                             file.contentType.contains('presentation') ? 'fa-file-powerpoint' :
+                             'fa-file') : 'fa-file')}"
+                  >
+                  </i>
+                </div>
+                <div class="file-info">
+                  <span class="file-name" th:text="${file.fileName}"></span>
+                  <span
+                    class="file-size"
+                    th:text="${#numbers.formatDecimal(file.size/1024, 0, 2) + ' KB'}"
+                  >
+                  </span>
+                </div>
+                <div class="file-actions">
+                  <a
+                    th:href="@{/files/download/{id}(id=${file.id})}"
+                    class="action-btn download-btn"
+                    title="Download"
+                  >
+                    <i class="fas fa-download"></i>
+                  </a>
+                  <form
+                    th:action="@{/files/delete/{id}(id=${file.id})}"
+                    method="post"
+                    style="display: inline"
+                  >
+                    <button
+                      type="submit"
+                      class="action-btn delete-btn"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div
+              th:if="${files != null and !files.empty}"
+              class="file-list"
+              style="display: none"
+              id="listView"
+            >
+              <div class="list-header">
+                <div class="list-cell sortable" data-sort="name">
+                  Name
+                  <i class="fas fa-sort"></i>
+                </div>
+                <div class="list-cell sortable" data-sort="size">
+                  Size
+                  <i class="fas fa-sort"></i>
+                </div>
+                <div class="list-cell sortable" data-sort="date">
+                  Modified
+                  <i class="fas fa-sort"></i>
+                </div>
+                <div class="list-cell">Actions</div>
+              </div>
+              <div th:each="file : ${files}" class="list-row">
+                <div class="list-cell name-cell">
+                  <input
+                    type="checkbox"
+                    th:value="${file.id}"
+                    class="file-checkbox"
+                    title="Select file"
+                  />
+                  <i
+                    th:class="${'fas ' + 
+                      (file.contentType != null ? 
+                          (file.contentType.startsWith('image/') ? 'fa-image' :
+                           file.contentType.startsWith('video/') ? 'fa-file-video' :
+                           file.contentType.startsWith('audio/') ? 'fa-file-audio' :
+                           file.contentType == 'application/pdf' ? 'fa-file-pdf' :
+                           file.contentType.contains('word') ? 'fa-file-word' :
+                           file.contentType.contains('spreadsheet') ? 'fa-file-excel' :
+                           file.contentType.contains('presentation') ? 'fa-file-powerpoint' :
+                           'fa-file') : 'fa-file')}"
+                  >
+                  </i>
+                  <span th:text="${file.fileName}"></span>
+                </div>
+                <div
+                  class="list-cell"
+                  th:text="${#numbers.formatDecimal(file.size/1024, 0, 2) + ' KB'}"
+                ></div>
+                <div
+                  class="list-cell"
+                  th:text="${#temporals.format(file.uploadDateTime, 'MMM dd, yyyy')}"
+                ></div>
+                <div class="list-cell actions-cell">
+                  <a
+                    th:href="@{/files/download/{id}(id=${file.id})}"
+                    class="action-btn download-btn"
+                    title="Download"
+                  >
+                    <i class="fas fa-download"></i>
+                  </a>
+                  <form
+                    th:action="@{/files/delete/{id}(id=${file.id})}"
+                    method="post"
+                    style="display: inline"
+                  >
+                    <button
+                      type="submit"
+                      class="action-btn delete-btn"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div th:if="${files == null or files.empty}" class="no-files">
+              <i class="fas fa-folder-open"></i>
+              <p>No files uploaded yet</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add this after the file list -->
+        <div class="pagination" th:if="${totalPages > 1}">
+          <div class="pagination-info">
+            Showing <span th:text="${files.size()}"></span> of
+            <span th:text="${totalItems}"></span> files
+          </div>
+          <div class="pagination-controls">
+            <a
+              th:if="${currentPage > 0}"
+              th:href="@{/home(page=${currentPage - 1})}"
+              class="page-link"
+              >&laquo; Previous</a
+            >
+
+            <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+              <a
+                th:if="${i != currentPage}"
+                th:href="@{/home(page=${i})}"
+                class="page-link"
+                th:text="${i + 1}"
+              ></a>
+              <span
+                th:if="${i == currentPage}"
+                class="page-link active"
+                th:text="${i + 1}"
+              ></span>
+            </span>
+
+            <a
+              th:if="${currentPage < totalPages - 1}"
+              th:href="@{/home(page=${currentPage + 1})}"
+              class="page-link"
+              >Next &raquo;</a
+            >
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <form
+      id="bulkDeleteForm"
+      th:action="@{/files/delete-multiple}"
+      method="post"
+      style="display: none"
+    >
+      <input type="hidden" name="fileIds" id="fileIdsInput" />
+    </form>
+
+    <div id="deleteAllFilesModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="fas fa-exclamation-triangle"></i> Delete All Files</h2>
+          <button class="modal-close" onclick="closeDeleteAllFilesModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="warning-icon">
+            <i class="fas fa-trash-alt"></i>
+          </div>
+          <p class="modal-message">
+            Are you sure you want to delete all your files?
+          </p>
+          <div class="warning-list">
+            <p>Warning:</p>
+            <ul>
+              <li>
+                <i class="fas fa-exclamation-circle"></i> This will permanently
+                delete all your files
+              </li>
+              <li>
+                <i class="fas fa-exclamation-circle"></i> This action cannot be
+                undone
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <form th:action="@{/files/delete-all}" method="post">
+            <button type="submit" class="danger-btn">
+              <i class="fas fa-trash-alt"></i> Delete All Files
+            </button>
+          </form>
+          <button class="cancel-btn" onclick="closeDeleteAllFilesModal()">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="deleteAccountModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="fas fa-exclamation-triangle"></i> Delete Account</h2>
+          <button class="modal-close" onclick="closeDeleteModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="warning-icon">
+            <i class="fas fa-user-slash"></i>
+          </div>
+          <p class="modal-message">
+            Are you sure you want to delete your account?
+          </p>
+          <div class="warning-list">
+            <p>This will:</p>
+            <ul>
+              <li>
+                <i class="fas fa-trash"></i> Permanently delete all your files
+              </li>
+              <li>
+                <i class="fas fa-user-times"></i> Delete your account
+                information
+              </li>
+              <li>
+                <i class="fas fa-exclamation-circle"></i> This action cannot be
+                undone
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <form th:action="@{/account/delete}" method="post">
+            <button type="submit" class="danger-btn">
+              <i class="fas fa-trash-alt"></i> Delete Account
+            </button>
+          </form>
+          <button class="cancel-btn" onclick="closeDeleteModal()">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // File type icons mapping
+      const fileIcons = {
+        image: "fa-image",
+        pdf: "fa-file-pdf",
+        word: "fa-file-word",
+        excel: "fa-file-excel",
+        powerpoint: "fa-file-powerpoint",
+        text: "fa-file-alt",
+        video: "fa-file-video",
+        audio: "fa-file-audio",
+        zip: "fa-file-archive",
+        default: "fa-file",
+      };
+
+      function getFileIcon(fileType) {
+        if (fileType.startsWith("image/")) return fileIcons.image;
+        if (fileType === "application/pdf") return fileIcons.pdf;
+        if (fileType.includes("word")) return fileIcons.word;
+        if (fileType.includes("excel") || fileType.includes("spreadsheet"))
+          return fileIcons.excel;
+        if (
+          fileType.includes("powerpoint") ||
+          fileType.includes("presentation")
+        )
+          return fileIcons.powerpoint;
+        if (fileType.startsWith("text/")) return fileIcons.text;
+        if (fileType.startsWith("video/")) return fileIcons.video;
+        if (fileType.startsWith("audio/")) return fileIcons.audio;
+        if (fileType.includes("zip") || fileType.includes("compressed"))
+          return fileIcons.zip;
+        return fileIcons.default;
+      }
+
+      function updateFilePreview(files) {
+        const previewContainer = document.getElementById("previewContainer");
+        previewContainer.innerHTML = "";
+
+        Array.from(files).forEach((file) => {
+          const preview = document.createElement("div");
+          preview.className = "file-preview";
+
+          if (file.type.startsWith("image/")) {
+            // Create image preview container
+            const imgContainer = document.createElement("div");
+            imgContainer.className = "preview-image-container";
+
+            // Create loading indicator
+            const loading = document.createElement("div");
+            loading.className = "preview-loading";
+            loading.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            imgContainer.appendChild(loading);
+
+            // Create and load image
+            const img = document.createElement("img");
+            img.className = "preview-image";
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              img.src = e.target.result;
+              loading.remove(); // Remove loading indicator when image is loaded
+            };
+            reader.onerror = function (e) {
+              loading.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+              console.error("Error loading image preview:", e);
+            };
+
+            reader.readAsDataURL(file);
+            imgContainer.appendChild(img);
+            preview.appendChild(imgContainer);
+          } else {
+            // Create icon preview for non-images
+            const icon = document.createElement("i");
+            icon.className = `fas ${getFileIcon(file.type)} preview-icon`;
+            preview.appendChild(icon);
+          }
+
+          const fileInfo = document.createElement("div");
+          fileInfo.className = "preview-info";
+
+          const fileName = document.createElement("span");
+          fileName.className = "preview-name";
+          fileName.textContent = file.name;
+
+          const fileSize = document.createElement("span");
+          fileSize.className = "preview-size";
+          fileSize.textContent = formatFileSize(file.size);
+
+          fileInfo.appendChild(fileName);
+          fileInfo.appendChild(fileSize);
+          preview.appendChild(fileInfo);
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "preview-remove";
+          removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+          removeBtn.onclick = function () {
+            const dt = new DataTransfer();
+            const input = document.getElementById("file");
+            const { files } = input;
+
+            for (let i = 0; i < files.length; i++) {
+              if (files[i] !== file) {
+                dt.items.add(files[i]);
+              }
+            }
+
+            input.files = dt.files;
+            preview.remove();
+            updateFileCount();
+          };
+
+          preview.appendChild(removeBtn);
+          previewContainer.appendChild(preview);
+        });
+
+        updateFileCount();
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const sizes = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      }
+
+      function updateFileCount() {
+        const fileInput = document.getElementById("file");
+        const label = document.querySelector(".file-label span");
+        const fileCount = fileInput.files.length;
+
+        if (fileCount === 0) {
+          label.textContent = "Choose files or drag them here";
+        } else if (fileCount === 1) {
+          label.textContent = fileInput.files[0].name;
+        } else {
+          label.textContent = `${fileCount} files selected`;
+        }
+      }
+
+      // File upload handling
+      function uploadFiles(files) {
+        if (files.length > 0) {
+          const formData = new FormData();
+          Array.from(files).forEach((file) => {
+            formData.append("files", file);
+          });
+
+          // Show progress container
+          const progressContainer = document.getElementById("uploadProgress");
+          const progressBar = progressContainer.querySelector(".progress-fill");
+          const progressText =
+            progressContainer.querySelector(".progress-percent");
+          progressContainer.style.display = "block";
+
+          // Auto upload with progress
+          fetch("/files/upload", {
+            method: "POST",
+            body: formData,
+            // Add upload progress tracking
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              progressBar.style.width = percentCompleted + "%";
+              progressText.textContent = percentCompleted + "%";
+            },
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error("Upload failed");
+              progressContainer.style.display = "none";
+              window.location.reload();
+            })
+            .catch((error) => {
+              console.error("Upload failed:", error);
+              alert("Failed to upload files: " + error.message);
+              progressContainer.style.display = "none";
+            });
+        }
+      }
+
+      // File input change handler
+      document.getElementById("file").addEventListener("change", function (e) {
+        uploadFiles(this.files);
+      });
+
+      // Drag and drop handlers
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      function handleDragEnter(e) {
+        preventDefaults(e);
+        dropZone.classList.add("dragover");
+      }
+
+      function handleDragLeave(e) {
+        preventDefaults(e);
+        dropZone.classList.remove("dragover");
+      }
+
+      function handleDrop(e) {
+        preventDefaults(e);
+        dropZone.classList.remove("dragover");
+        uploadFiles(e.dataTransfer.files);
+      }
+
+      const dropZone = document.querySelector(".file-input-container");
+
+      // Add event listeners
+      dropZone.addEventListener("dragenter", handleDragEnter);
+      dropZone.addEventListener("dragover", handleDragEnter);
+      dropZone.addEventListener("dragleave", handleDragLeave);
+      dropZone.addEventListener("drop", handleDrop);
+
+      // Prevent drag and drop on document
+      document.addEventListener("dragenter", preventDefaults);
+      document.addEventListener("dragover", preventDefaults);
+      document.addEventListener("dragleave", preventDefaults);
+      document.addEventListener("drop", preventDefaults);
+
+      // Add these functions
+      function showDeleteAllFilesModal() {
+        document.getElementById("deleteAllFilesModal").style.display = "flex";
+      }
+
+      function closeDeleteAllFilesModal() {
+        document.getElementById("deleteAllFilesModal").style.display = "none";
+      }
+
+      // Add this to your existing window click handler
+      window.addEventListener("click", (e) => {
+        if (e.target === document.getElementById("deleteAllFilesModal")) {
+          closeDeleteAllFilesModal();
+        }
+        if (e.target === deleteAccountModal) {
+          closeDeleteModal();
+        }
+      });
+
+      // View toggle functionality
+      document.addEventListener("DOMContentLoaded", function () {
+        const viewBtns = document.querySelectorAll(".view-btn");
+        const gridView = document.getElementById("filesView");
+        const listView = document.getElementById("listView");
+
+        viewBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const view = btn.dataset.view;
+
+            // Update active button
+            viewBtns.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            // Show selected view
+            if (view === "grid") {
+              gridView.style.display = "grid";
+              listView.style.display = "none";
+            } else {
+              gridView.style.display = "none";
+              listView.style.display = "block";
+            }
+
+            // Store preference
+            localStorage.setItem("preferredView", view);
+          });
+        });
+
+        // Restore preferred view
+        const preferredView = localStorage.getItem("preferredView");
+        if (preferredView) {
+          document.querySelector(`[data-view="${preferredView}"]`).click();
+        }
+      });
+
+      function initializeSorting() {
+        const sortableHeaders = document.querySelectorAll(".sortable");
+        let currentSort = { column: null, direction: "asc" };
+
+        function sortFiles(column, direction) {
+          const listView = document.getElementById("listView");
+          const rows = Array.from(listView.querySelectorAll(".list-row"));
+          const header = listView.querySelector(".list-header");
+
+          const sortedRows = rows.sort((a, b) => {
+            let aValue, bValue;
+
+            switch (column) {
+              case "name":
+                aValue = a.querySelector(".name-cell span").textContent;
+                bValue = b.querySelector(".name-cell span").textContent;
+                return direction === "asc"
+                  ? aValue.localeCompare(bValue)
+                  : bValue.localeCompare(aValue);
+
+              case "size":
+                aValue = parseFloat(
+                  a.querySelector(".list-cell:nth-child(2)").textContent
+                );
+                bValue = parseFloat(
+                  b.querySelector(".list-cell:nth-child(2)").textContent
+                );
+                return direction === "asc" ? aValue - bValue : bValue - aValue;
+
+              case "date":
+                aValue = new Date(
+                  a.querySelector(".list-cell:nth-child(3)").textContent
+                );
+                bValue = new Date(
+                  b.querySelector(".list-cell:nth-child(3)").textContent
+                );
+                return direction === "asc" ? aValue - bValue : bValue - aValue;
+            }
+          });
+
+          // Clear existing rows
+          rows.forEach((row) => row.remove());
+
+          // Append sorted rows
+          sortedRows.forEach((row) => listView.appendChild(row));
+        }
+
+        sortableHeaders.forEach((header) => {
+          header.addEventListener("click", () => {
+            const column = header.dataset.sort;
+            let direction = "asc";
+
+            // Reset other headers
+            sortableHeaders.forEach((h) => {
+              if (h !== header) {
+                h.classList.remove("asc", "desc");
+              }
+            });
+
+            // Toggle direction if same column
+            if (currentSort.column === column) {
+              direction = header.classList.contains("asc") ? "desc" : "asc";
+              header.classList.toggle("asc");
+              header.classList.toggle("desc");
+            } else {
+              // New column, set to asc
+              header.classList.add("asc");
+              header.classList.remove("desc");
+            }
+
+            currentSort = { column, direction };
+            sortFiles(column, direction);
+          });
+        });
+
+        // Initial sort by name
+        if (sortableHeaders.length > 0) {
+          const nameHeader = document.querySelector('[data-sort="name"]');
+          nameHeader.classList.add("asc");
+          sortFiles("name", "asc");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeSorting();
+      });
+
+      const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+      const deleteAccountModal = document.getElementById("deleteAccountModal");
+
+      deleteAccountBtn.addEventListener("click", () => {
+        deleteAccountModal.style.display = "flex";
+      });
+
+      function closeDeleteModal() {
+        deleteAccountModal.style.display = "none";
+      }
+
+      // Close modal when clicking outside
+      window.addEventListener("click", (e) => {
+        if (e.target === deleteAccountModal) {
+          closeDeleteModal();
+        }
+      });
+
+      // File selection handling
+      function updateSelectedCount() {
+        const selectedFiles = document.querySelectorAll(
+          ".file-checkbox:checked"
+        );
+        const selectedCount = selectedFiles.length;
+        document.getElementById(
+          "selectedCount"
+        ).textContent = `${selectedCount} files selected`;
+
+        // Enable/disable delete selected button
+        const deleteSelectedBtn = document.getElementById("deleteSelected");
+        deleteSelectedBtn.disabled = selectedCount === 0;
+      }
+
+      // Select all functionality
+      document
+        .getElementById("selectAll")
+        .addEventListener("click", function () {
+          const checkboxes = document.querySelectorAll(".file-checkbox");
+          const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+
+          checkboxes.forEach((checkbox) => {
+            checkbox.checked = !allChecked;
+          });
+
+          updateSelectedCount();
+        });
+
+      // Delete selected files
+      document
+        .getElementById("deleteSelected")
+        .addEventListener("click", function () {
+          const selectedFiles = document.querySelectorAll(
+            ".file-checkbox:checked"
+          );
+          const fileIds = Array.from(selectedFiles).map((cb) => cb.value);
+
+          if (fileIds.length === 0) return;
+
+          if (confirm("Are you sure you want to delete the selected files?")) {
+            fetch("/files/delete-multiple", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ fileIds: fileIds }),
+            })
+              .then((response) => {
+                if (!response.ok) throw new Error("Delete failed");
+                window.location.reload();
+              })
+              .catch((error) => {
+                console.error("Delete failed:", error);
+                alert("Failed to delete files: " + error.message);
+              });
+          }
+        });
+
+      // Add checkbox change listener to each file
+      document.querySelectorAll(".file-checkbox").forEach((checkbox) => {
+        checkbox.addEventListener("change", updateSelectedCount);
+      });
+    </script>
+  </body>
+</html>

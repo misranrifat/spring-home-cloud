@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Sign Up - Cloud Drive</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="auth-container">
+      <div class="auth-form">
+        <h2><i class="fas fa-cloud"></i> Create Account</h2>
+
+        <div
+          th:if="${error}"
+          class="alert alert-error"
+          th:text="${error}"
+        ></div>
+
+        <form th:action="@{/register}" method="post">
+          <div class="form-group">
+            <label class="form-label" for="fullName">Full Name</label>
+            <input
+              type="text"
+              id="fullName"
+              name="fullName"
+              class="form-input"
+              required
+              autofocus
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirmPassword"
+              >Confirm Password</label
+            >
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              class="form-input"
+              required
+              oninput="validatePasswords()"
+            />
+            <span
+              id="passwordError"
+              class="error-message"
+              style="color: red; display: none"
+            >
+              Passwords do not match
+            </span>
+          </div>
+
+          <button type="submit" class="auth-btn" id="submitBtn">
+            <i class="fas fa-user-plus"></i> Sign Up
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          Already have an account?
+          <a href="/login" class="auth-link">Sign In</a>
+        </div>
+
+        <script>
+          function validatePasswords() {
+            const password = document.getElementById("password");
+            const confirmPassword = document.getElementById("confirmPassword");
+            const errorMessage = document.getElementById("passwordError");
+            const submitBtn = document.getElementById("submitBtn");
+
+            if (password.value !== confirmPassword.value) {
+              errorMessage.style.display = "block";
+              submitBtn.disabled = true;
+            } else {
+              errorMessage.style.display = "none";
+              submitBtn.disabled = false;
+            }
+          }
+
+          // Also validate when the first password field changes
+          document
+            .getElementById("password")
+            .addEventListener("input", validatePasswords);
+        </script>
+      </div>
+    </div>
+  </body>
+</html>
