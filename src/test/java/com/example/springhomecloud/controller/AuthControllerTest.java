@@ -134,4 +134,50 @@ class AuthControllerTest {
         verify(redirectAttributes).addFlashAttribute(eq("error"), contains("Registration failed:"));
         verify(userRepository, never()).save(any(User.class));
     }
+
+    @Test
+    void authenticateUser_InvalidCredentials() {
+        // Arrange
+        SignInRequest signInRequest = new SignInRequest("test@example.com", "wrongpassword");
+        when(authenticationManager.authenticate(any()))
+                .thenThrow(
+                        new org.springframework.security.authentication.BadCredentialsException("Invalid credentials"));
+
+        // Act & Assert
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class, () -> {
+            authController.authenticateUser(signInRequest);
+        });
+
+        verify(tokenProvider, never()).generateToken(any());
+    }
+
+    @Test
+    void registerThenLoginWithWrongPassword() {
+        // Arrange - Register
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("correctPassword");
+        user.setFullName("Test User");
+
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+
+        // Act - Register
+        String registerResult = authController.registerUser(user, redirectAttributes);
+        assertEquals("redirect:/home", registerResult);
+        verify(userRepository).save(user);
+
+        // Arrange - Login with wrong password
+        SignInRequest signInRequest = new SignInRequest("test@example.com", "wrongPassword");
+        when(authenticationManager.authenticate(any()))
+                .thenThrow(
+                        new org.springframework.security.authentication.BadCredentialsException("Invalid credentials"));
+
+        // Act & Assert - Login
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class, () -> {
+            authController.authenticateUser(signInRequest);
+        });
+        verify(tokenProvider, never()).generateToken(any());
+    }
 }
